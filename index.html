@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>遠距工作日誌產生器</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --bg-color: #f8f9fa;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, 'Microsoft JhengHei';
+            background-color: var(--bg-color);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="month"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        /* 工作項目清單設定 */
+        .task-manager {
+            background: #f1f4f8;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .task-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .task-tag {
+            background: var(--primary-color);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .task-tag span {
+            cursor: pointer;
+            font-weight: bold;
+            color: #ff9999;
+        }
+        .task-tag span:hover {
+            color: #ff4d4d;
+        }
+        .add-task-row {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .btn-generate {
+            width: 100%;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 15px;
+            background-color: #27ae60;
+            margin-top: 10px;
+        }
+        .btn-generate:hover {
+            background-color: #219653;
+        }
+        /* 報表輸出區 */
+        #reportArea {
+            display: none;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .btn-copy {
+            background-color: #f39c12;
+            margin-top: 20px;
+        }
+        .btn-copy:hover {
+            background-color: #d68910;
+        }
+        @media print {
+            body { background: white; padding: 0; }
+            .container, .btn-copy { display: none; }
+            #reportArea { display: block; box-shadow: none; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📝 遠距工作日誌產生器</h1>
+    
+    <div class="grid-2">
+        <div class="form-group">
+            <label for="companyName">工作單位名稱</label>
+            <input type="text" id="companyName" placeholder="例如：某某科技有限公司" value="某某科技有限公司">
+        </div>
+        <div class="form-group">
+            <label for="employeeName">受僱者名稱</label>
+            <input type="text" id="employeeName" placeholder="例如：王小明">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="workMonth">請選擇產出月份</label>
+        <input type="month" id="workMonth">
+    </div>
+
+    <div class="task-manager">
+        <label>工作項目設定 (產出時將隨機分配至每日工時)</label>
+        <div class="task-list" id="taskList">
+            <!-- 任務標籤會透過 JS 產出 -->
+        </div>
+        <div class="add-task-row">
+            <input type="text" id="newTaskInput" placeholder="輸入新的工作項目...">
+            <button type="button" onclick="addTask()">新增項目</button>
+        </div>
+    </div>
+
+    <button class="btn-generate" onclick="generateReport()">🚀 一鍵生成合理工作日誌</button>
+</div>
+
+<div id="reportArea">
+    <div class="report-header">
+        <h2 id="reportTitle">工作日誌月報表</h2>
+        <p><strong>工作單位：</strong> <span id="outCompany"></span> &nbsp;&nbsp;|&nbsp;&nbsp; <strong>受僱者：</strong> <span id="outEmployee"></span></p>
+        <p><strong>申報區間：</strong> <span id="outPeriod"></span> &nbsp;&nbsp;|&nbsp;&nbsp; <strong>表定工時：</strong> 週一至週五 08:00~17:00</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th width="12%">日期</th>
+                <th width="10%">星期</th>
+                <th width="15%">時間</th>
+                <th>工作內容摘要</th>
+            </tr>
+        </thead>
+        <tbody id="reportTableBody">
+            <!-- 報表內容會透過 JS 產出 -->
+        </tbody>
+    </table>
+    
+    <button class="btn-copy" onclick="window.print()">🖨️ 列印 / 存成 PDF</button>
+</div>
+
+<script>
+    // 預設工作項目
+    let tasks = [
+        "教具製作", 
+        "網路輿情蒐集", 
+        "公關事件處理", 
+        "帳務分析", 
+        "老闆交辦事項"
+    ];
+
+    // 初始化：設定預設月份為當月，並渲染任務標籤
+    window.onload = () => {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        document.getElementById('workMonth').value = `${yyyy}-${mm}`;
+        renderTasks();
+    };
+
+    // 渲染工作項目標籤
+    function renderTasks() {
+        const taskListDiv = document.getElementById('taskList');
+        taskListDiv.innerHTML = '';
+        tasks.forEach((task, index) => {
+            const tag = document.createElement('div');
+            tag.className = 'task-tag';
+            tag.innerHTML = `${task} <span onclick="removeTask(${index})" title="刪除">✖</span>`;
+            taskListDiv.appendChild(tag);
+        });
+    }
+
+    // 新增工作項目
+    function addTask() {
+        const input = document.getElementById('newTaskInput');
+        const val = input.value.trim();
+        if (val && !tasks.includes(val)) {
+            tasks.push(val);
+            input.value = '';
+            renderTasks();
+        }
+    }
+
+    // 刪除工作項目
+    function removeTask(index) {
+        tasks.splice(index, 1);
+        renderTasks();
+    }
+
+    // 打亂陣列 (Fisher-Yates Shuffle) - 用於隨機抽取任務
+    function shuffleArray(array) {
+        let arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    // 產出報表
+    function generateReport() {
+        const company = document.getElementById('companyName').value || '未填寫單位';
+        const employee = document.getElementById('employeeName').value || '未填寫姓名';
+        const monthVal = document.getElementById('workMonth').value;
+
+        if (!monthVal) {
+            alert("請選擇月份！");
+            return;
+        }
+        if (tasks.length === 0) {
+            alert("請至少保留一個工作項目！");
+            return;
+        }
+
+        const [year, month] = monthVal.split('-');
+        
+        // 填入報表標頭
+        document.getElementById('reportTitle').innerText = `${year}年${month}月 工作日誌`;
+        document.getElementById('outCompany').innerText = company;
+        document.getElementById('outEmployee').innerText = employee;
+        document.getElementById('outPeriod').innerText = `${year}年${month}月01日 至 該月底`;
+
+        const tbody = document.getElementById('reportTableBody');
+        tbody.innerHTML = ''; // 清空舊資料
+
+        // 取得該月天數
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const weekDayNames = ["日", "一", "二", "三", "四", "五", "六"];
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            let currentDate = new Date(year, month - 1, day);
+            let dayOfWeek = currentDate.getDay();
+
+            // 只處理週一到週五 (0 是週日, 6 是週六)
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                // 隨機抽取今日任務
+                let shuffledTasks = shuffleArray(tasks);
+                
+                // 決定上午與下午的任務數量 (1~2個)
+                let amTaskCount = Math.floor(Math.random() * 2) + 1;
+                let pmTaskCount = Math.floor(Math.random() * 2) + 1;
+                
+                // 防止任務不夠抽
+                if (amTaskCount + pmTaskCount > shuffledTasks.length) {
+                    amTaskCount = Math.ceil(shuffledTasks.length / 2);
+                    pmTaskCount = Math.floor(shuffledTasks.length / 2);
+                }
+
+                let amTasks = shuffledTasks.slice(0, amTaskCount);
+                let pmTasks = shuffledTasks.slice(amTaskCount, amTaskCount + pmTaskCount);
+                
+                // 若下午沒任務，補一個預設描述
+                if(pmTasks.length === 0) pmTasks = [tasks[Math.floor(Math.random() * tasks.length)]];
+
+                // 組合顯示文字
+                let amText = `進行 ${amTasks.join('、')} 相關業務`;
+                let pmText = `處理 ${pmTasks.join('、')} 等事項`;
+                
+                // 偶爾隨機加入一些自然的工作動詞，看起來更真實
+                const verbs = ["協助", "執行", "跟進", "彙整"];
+                if (Math.random() > 0.5) amText = verbs[Math.floor(Math.random()*verbs.length)] + amTasks.join('與') + "作業";
+                if (Math.random() > 0.5) pmText = "完成" + pmTasks.join('及') + "相關任務";
+
+                // 建立表格行 (跨列設計：一天一列，但內容分行)
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="text-align: center;">${month}/${String(day).padStart(2, '0')}</td>
+                    <td style="text-align: center;">週${weekDayNames[dayOfWeek]}</td>
+                    <td>
+                        08:00~12:00<br>
+                        <span style="color:#888; font-size:12px;">12:00~13:00</span><br>
+                        13:00~17:00
+                    </td>
+                    <td>
+                        • 上午：${amText}<br>
+                        <span style="color:#888; font-size:12px;">• 午間：休息</span><br>
+                        • 下午：${pmText}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        // 顯示報表區塊
+        document.getElementById('reportArea').style.display = 'block';
+        
+        // 讓畫面平滑往下滾動到報表區
+        document.getElementById('reportArea').scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
