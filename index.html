@@ -41,7 +41,7 @@
             font-weight: bold;
             margin-bottom: 5px;
         }
-        input[type="text"], input[type="month"] {
+        input[type="text"], input[type="month"], input[type="password"] {
             width: 100%;
             padding: 10px;
             border: 1px solid #ccc;
@@ -151,7 +151,7 @@
         }
         @media print {
             body { background: white; padding: 0; }
-            .container, .btn-copy { display: none; }
+            .container, .btn-copy, .btn-email { display: none; }
             #reportArea { display: block; box-shadow: none; padding: 0; }
         }
     </style>
@@ -172,7 +172,7 @@
         </div>
         <div class="form-group">
             <label for="apiToken">🔒 寄件通關密碼 (保護 API)</label>
-            <input type="password" id="apiToken" placeholder="0924">
+            <input type="password" id="apiToken" placeholder="輸入通關密碼 (例如: 0924)">
         </div>
     </div>
 
@@ -278,7 +278,7 @@
         return arr;
     }
 
-    // 產出報表
+    // 產出報表函數
     function generateReport() {
         const company = document.getElementById('companyName').value || '未填寫單位';
         const employee = document.getElementById('employeeName').value || '未填寫姓名';
@@ -367,18 +367,19 @@
         
         // 讓畫面平滑往下滾動到報表區
         document.getElementById('reportArea').scrollIntoView({ behavior: 'smooth' });
-
-        // ======= 新增寄信功能 =======
+    }
+    
+    // ======= 寄信功能 (這段必須放在 generateReport() 的外面) =======
     async function sendEmail() {
         const company = document.getElementById('companyName').value || '未填寫單位';
         const employee = document.getElementById('employeeName').value || '未填寫姓名';
         const monthVal = document.getElementById('workMonth').value;
         const token = document.getElementById('apiToken').value;
 
-if (!token) {
-    alert("請輸入寄件通關密碼！");
-    return;
-}
+        if (!token) {
+            alert("請輸入寄件通關密碼！");
+            return;
+        }
         
         if (!monthVal) {
             alert("請先產出報表！");
@@ -405,18 +406,17 @@ if (!token) {
             </div>
         `;
 
-        // 已經替換為您的專屬 Google Apps Script URL
+        // 您的專屬 Google Apps Script URL
         const scriptUrl = 'https://script.google.com/macros/s/AKfycbyxs5f_0HxroSOmDw9gToUNBt2MKk1wm0uEsvi1DcRCSonuf07UnwLjb7ZxUUmgB_Ti/exec';
 
         try {
-            // 由於 GAS 跨域機制的特性，使用 text/plain 發送，避免預檢請求(OPTIONS)報錯
             const response = await fetch(scriptUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'text/plain;charset=utf-8',
                 },
                 body: JSON.stringify({
-                    token: token,        // <--- 加上這行
+                    token: token,        
                     subject: subject,
                     htmlBody: htmlBody
                 })
@@ -435,7 +435,6 @@ if (!token) {
             btn.disabled = false;
             btn.innerText = '✉️ 寄送給老闆';
         }
-    }
     }
 </script>
 
