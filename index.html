@@ -213,6 +213,7 @@
     </table>
     
     <button class="btn-copy" onclick="window.print()">🖨️ 列印 / 存成 PDF</button>
+    <button class="btn-email" id="btnSendEmail" onclick="sendEmail()" style="background-color: #e74c3c; margin-left: 10px; margin-top: 20px;">✉️ 寄送給老闆</button>
 </div>
 
 <script>
@@ -362,6 +363,68 @@
         
         // 讓畫面平滑往下滾動到報表區
         document.getElementById('reportArea').scrollIntoView({ behavior: 'smooth' });
+
+        // ======= 新增寄信功能 =======
+    async function sendEmail() {
+        const company = document.getElementById('companyName').value || '未填寫單位';
+        const employee = document.getElementById('employeeName').value || '未填寫姓名';
+        const monthVal = document.getElementById('workMonth').value;
+        
+        if (!monthVal) {
+            alert("請先產出報表！");
+            return;
+        }
+
+        const btn = document.getElementById('btnSendEmail');
+        btn.disabled = true;
+        btn.innerText = '寄送中...';
+
+        const [year, month] = monthVal.split('-');
+        const subject = `【工作日誌】${year}年${month}月 - ${employee} (${company})`;
+
+        // 為了確保 Email 顯示正常，我們抓取表格的 HTML 並加上簡單的樣式
+        const tableHtml = document.querySelector('table').outerHTML;
+        const htmlBody = `
+            <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">${year}年${month}月 工作日誌</h2>
+                <p><strong>工作單位：</strong> ${company}</p>
+                <p><strong>受僱者：</strong> ${employee}</p>
+                <p><strong>表定工時：</strong> 週一至週五 08:00~17:00</p>
+                <br>
+                ${tableHtml}
+            </div>
+        `;
+
+        // 已經替換為您的專屬 Google Apps Script URL
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbyxs5f_0HxroSOmDw9gToUNBt2MKk1wm0uEsvi1DcRCSonuf07UnwLjb7ZxUUmgB_Ti/exec';
+
+        try {
+            // 由於 GAS 跨域機制的特性，使用 text/plain 發送，避免預檢請求(OPTIONS)報錯
+            const response = await fetch(scriptUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8',
+                },
+                body: JSON.stringify({
+                    subject: subject,
+                    htmlBody: htmlBody
+                })
+            });
+
+            const result = await response.json();
+            if (result.status === "success") {
+                alert('✅ 已經成功透過您的 Gmail 寄送給老闆！');
+            } else {
+                alert('❌ 寄件失敗：' + result.message);
+            }
+        } catch (error) {
+            alert('❌ 發生錯誤，信件可能已經送出或遇到網路問題。請至您的 Gmail 備份夾確認。');
+            console.error(error);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = '✉️ 寄送給老闆';
+        }
+    }
     }
 </script>
 
