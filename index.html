@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>遠距工作日誌產生器</title>
+    <title>遠距工作日誌產生器 (進階編輯版)</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -41,7 +41,7 @@
             font-weight: bold;
             margin-bottom: 5px;
         }
-        input[type="text"], input[type="month"], input[type="password"] {
+        input[type="text"], input[type="password"], select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ccc;
@@ -54,7 +54,10 @@
             grid-template-columns: 1fr 1fr;
             gap: 15px;
         }
-        /* 工作項目清單設定 */
+        .date-selectors {
+            display: flex;
+            gap: 10px;
+        }
         .task-manager {
             background: #f1f4f8;
             padding: 15px;
@@ -82,13 +85,8 @@
             font-weight: bold;
             color: #ff9999;
         }
-        .task-tag span:hover {
-            color: #ff4d4d;
-        }
-        .add-task-row {
-            display: flex;
-            gap: 10px;
-        }
+        .task-tag span:hover { color: #ff4d4d; }
+        .add-task-row { display: flex; gap: 10px; }
         button {
             background-color: var(--accent-color);
             color: white;
@@ -99,9 +97,7 @@
             font-size: 16px;
             transition: background 0.2s;
         }
-        button:hover {
-            background-color: #2980b9;
-        }
+        button:hover { background-color: #2980b9; }
         .btn-generate {
             width: 100%;
             font-size: 18px;
@@ -110,9 +106,8 @@
             background-color: #27ae60;
             margin-top: 10px;
         }
-        .btn-generate:hover {
-            background-color: #219653;
-        }
+        .btn-generate:hover { background-color: #219653; }
+        
         /* 報表輸出區 */
         #reportArea {
             display: none;
@@ -125,10 +120,20 @@
             text-align: center;
             margin-bottom: 30px;
         }
+        /* 提示文字 */
+        .edit-hint {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 10px;
         }
         th, td {
             border: 1px solid #ddd;
@@ -139,20 +144,37 @@
             background-color: var(--primary-color);
             color: white;
         }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        /* 可編輯欄位的樣式 */
+        .editable-cell[contenteditable="true"] {
+            transition: all 0.2s;
         }
-        .btn-copy {
-            background-color: #f39c12;
-            margin-top: 20px;
+        .editable-cell[contenteditable="true"]:hover {
+            background-color: #ffffcc;
+            outline: 2px dashed #f39c12;
+            cursor: text;
         }
-        .btn-copy:hover {
-            background-color: #d68910;
+        .editable-cell[contenteditable="true"]:focus {
+            background-color: #fff;
+            outline: 2px solid #3498db;
         }
+
+        .btn-delete-row {
+            background-color: #e74c3c;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        .btn-delete-row:hover { background-color: #c0392b; }
+        .btn-copy { background-color: #f39c12; margin-top: 20px; }
+        .btn-copy:hover { background-color: #d68910; }
+
+        /* 列印模式設定 (隱藏按鈕) */
         @media print {
             body { background: white; padding: 0; }
-            .container, .btn-copy, .btn-email { display: none; }
+            .container, .btn-copy, .btn-email, .no-print, .edit-hint { display: none !important; }
             #reportArea { display: block; box-shadow: none; padding: 0; }
+            .editable-cell[contenteditable="true"] { outline: none !important; background-color: transparent !important; }
         }
     </style>
 </head>
@@ -171,28 +193,43 @@
             <input type="text" id="employeeName" placeholder="例如：王小明">
         </div>
         <div class="form-group">
-            <label for="apiToken">🔒 寄件通關密碼 (保護 API)</label>
-            <input type="password" id="apiToken" placeholder="輸入通關密碼 (老闆生日)">
+            <label for="apiToken">🔒 寄件通關密碼</label>
+            <input type="password" id="apiToken" placeholder="輸入通關密碼 (例如: 0924)">
         </div>
-    </div>
-
-    <div class="form-group">
-        <label for="workMonth">請選擇產出月份</label>
-        <input type="month" id="workMonth">
+        <div class="form-group">
+            <label>請選擇產出年份與月份</label>
+            <div class="date-selectors">
+                <select id="workYear">
+                    <!-- JS自動生成年份 -->
+                </select>
+                <select id="workMonth">
+                    <option value="01">1月</option>
+                    <option value="02">2月</option>
+                    <option value="03">3月</option>
+                    <option value="04">4月</option>
+                    <option value="05">5月</option>
+                    <option value="06">6月</option>
+                    <option value="07">7月</option>
+                    <option value="08">8月</option>
+                    <option value="09">9月</option>
+                    <option value="10">10月</option>
+                    <option value="11">11月</option>
+                    <option value="12">12月</option>
+                </select>
+            </div>
+        </div>
     </div>
 
     <div class="task-manager">
         <label>工作項目設定 (產出時將隨機分配至每日工時)</label>
-        <div class="task-list" id="taskList">
-            <!-- 任務標籤會透過 JS 產出 -->
-        </div>
+        <div class="task-list" id="taskList"></div>
         <div class="add-task-row">
             <input type="text" id="newTaskInput" placeholder="輸入新的工作項目...">
             <button type="button" onclick="addTask()">新增項目</button>
         </div>
     </div>
 
-    <button class="btn-generate" onclick="generateReport()">🚀 一鍵生成合理工作日誌</button>
+    <button class="btn-generate" onclick="generateReport()">🚀 一鍵生成可編輯工作日誌</button>
 </div>
 
 <div id="reportArea">
@@ -202,13 +239,16 @@
         <p><strong>申報區間：</strong> <span id="outPeriod"></span> &nbsp;&nbsp;|&nbsp;&nbsp; <strong>表定工時：</strong> 週一至週五 08:00~17:00</p>
     </div>
 
-    <table>
+    <div class="edit-hint">💡 提示：滑鼠點擊下方表格的「內容文字」即可直接修改！遇到連假或請假，請點選右側「刪除」按鈕整列抽掉。</div>
+
+    <table id="logTable">
         <thead>
             <tr>
-                <th width="12%">日期</th>
-                <th width="10%">星期</th>
-                <th width="15%">時間</th>
+                <th width="10%">日期</th>
+                <th width="8%">星期</th>
+                <th width="18%">時間</th>
                 <th>工作內容摘要</th>
+                <th width="8%" class="no-print">操作</th>
             </tr>
         </thead>
         <tbody id="reportTableBody">
@@ -223,23 +263,27 @@
 <script>
     // 預設工作項目
     let tasks = [
-        "教具製作", 
-        "網路輿情蒐集", 
-        "公關事件處理", 
-        "帳務分析", 
-        "老闆交辦事項"
+        "教具製作", "網路輿情蒐集", "公關事件處理", "帳務分析", "老闆交辦事項"
     ];
 
-    // 初始化：設定預設月份為當月，並渲染任務標籤
     window.onload = () => {
+        // 動態生成年份選項 (2024 ~ 2035)
+        const yearSelect = document.getElementById('workYear');
+        for(let y = 2024; y <= 2035; y++) {
+            let option = document.createElement('option');
+            option.value = y;
+            option.text = y + '年';
+            yearSelect.appendChild(option);
+        }
+
+        // 預設選擇現在的年月
         const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        document.getElementById('workMonth').value = `${yyyy}-${mm}`;
+        yearSelect.value = today.getFullYear();
+        document.getElementById('workMonth').value = String(today.getMonth() + 1).padStart(2, '0');
+        
         renderTasks();
     };
 
-    // 渲染工作項目標籤
     function renderTasks() {
         const taskListDiv = document.getElementById('taskList');
         taskListDiv.innerHTML = '';
@@ -251,7 +295,6 @@
         });
     }
 
-    // 新增工作項目
     function addTask() {
         const input = document.getElementById('newTaskInput');
         const val = input.value.trim();
@@ -262,13 +305,11 @@
         }
     }
 
-    // 刪除工作項目
     function removeTask(index) {
         tasks.splice(index, 1);
         renderTasks();
     }
 
-    // 打亂陣列 (Fisher-Yates Shuffle) - 用於隨機抽取任務
     function shuffleArray(array) {
         let arr = [...array];
         for (let i = arr.length - 1; i > 0; i--) {
@@ -282,29 +323,22 @@
     function generateReport() {
         const company = document.getElementById('companyName').value || '未填寫單位';
         const employee = document.getElementById('employeeName').value || '未填寫姓名';
-        const monthVal = document.getElementById('workMonth').value;
+        const year = document.getElementById('workYear').value;
+        const month = document.getElementById('workMonth').value;
 
-        if (!monthVal) {
-            alert("請選擇月份！");
-            return;
-        }
         if (tasks.length === 0) {
             alert("請至少保留一個工作項目！");
             return;
         }
-
-        const [year, month] = monthVal.split('-');
         
-        // 填入報表標頭
         document.getElementById('reportTitle').innerText = `${year}年${month}月 工作日誌`;
         document.getElementById('outCompany').innerText = company;
         document.getElementById('outEmployee').innerText = employee;
         document.getElementById('outPeriod').innerText = `${year}年${month}月01日 至 該月底`;
 
         const tbody = document.getElementById('reportTableBody');
-        tbody.innerHTML = ''; // 清空舊資料
+        tbody.innerHTML = ''; 
 
-        // 取得該月天數
         const daysInMonth = new Date(year, month, 0).getDate();
         const weekDayNames = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -312,16 +346,12 @@
             let currentDate = new Date(year, month - 1, day);
             let dayOfWeek = currentDate.getDay();
 
-            // 只處理週一到週五 (0 是週日, 6 是週六)
+            // 週一到週五
             if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                // 隨機抽取今日任務
                 let shuffledTasks = shuffleArray(tasks);
-                
-                // 決定上午與下午的任務數量 (1~2個)
                 let amTaskCount = Math.floor(Math.random() * 2) + 1;
                 let pmTaskCount = Math.floor(Math.random() * 2) + 1;
                 
-                // 防止任務不夠抽
                 if (amTaskCount + pmTaskCount > shuffledTasks.length) {
                     amTaskCount = Math.ceil(shuffledTasks.length / 2);
                     pmTaskCount = Math.floor(shuffledTasks.length / 2);
@@ -329,60 +359,51 @@
 
                 let amTasks = shuffledTasks.slice(0, amTaskCount);
                 let pmTasks = shuffledTasks.slice(amTaskCount, amTaskCount + pmTaskCount);
-                
-                // 若下午沒任務，補一個預設描述
                 if(pmTasks.length === 0) pmTasks = [tasks[Math.floor(Math.random() * tasks.length)]];
 
-                // 組合顯示文字
                 let amText = `進行 ${amTasks.join('、')} 相關業務`;
                 let pmText = `處理 ${pmTasks.join('、')} 等事項`;
                 
-                // 偶爾隨機加入一些自然的工作動詞，看起來更真實
                 const verbs = ["協助", "執行", "跟進", "彙整"];
                 if (Math.random() > 0.5) amText = verbs[Math.floor(Math.random()*verbs.length)] + amTasks.join('與') + "作業";
                 if (Math.random() > 0.5) pmText = "完成" + pmTasks.join('及') + "相關任務";
 
-                // 建立表格行 (跨列設計：一天一列，但內容分行)
                 let tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="text-align: center;">${month}/${String(day).padStart(2, '0')}</td>
                     <td style="text-align: center;">週${weekDayNames[dayOfWeek]}</td>
-                    <td>
+                    <td contenteditable="true" class="editable-cell">
                         08:00~12:00<br>
                         <span style="color:#888; font-size:12px;">12:00~13:00</span><br>
                         13:00~17:00
                     </td>
-                    <td>
+                    <td contenteditable="true" class="editable-cell">
                         • 上午：${amText}<br>
                         <span style="color:#888; font-size:12px;">• 午間：休息</span><br>
                         • 下午：${pmText}
+                    </td>
+                    <td class="no-print" style="text-align: center;">
+                        <button class="btn-delete-row" onclick="this.closest('tr').remove()" title="若是國定假日請點此刪除">🗑️刪除</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             }
         }
 
-        // 顯示報表區塊
         document.getElementById('reportArea').style.display = 'block';
-        
-        // 讓畫面平滑往下滾動到報表區
         document.getElementById('reportArea').scrollIntoView({ behavior: 'smooth' });
     }
     
-    // ======= 寄信功能 (這段必須放在 generateReport() 的外面) =======
+    // ======= 寄信功能 =======
     async function sendEmail() {
         const company = document.getElementById('companyName').value || '未填寫單位';
         const employee = document.getElementById('employeeName').value || '未填寫姓名';
-        const monthVal = document.getElementById('workMonth').value;
+        const year = document.getElementById('workYear').value;
+        const month = document.getElementById('workMonth').value;
         const token = document.getElementById('apiToken').value;
 
         if (!token) {
             alert("請輸入寄件通關密碼！");
-            return;
-        }
-        
-        if (!monthVal) {
-            alert("請先產出報表！");
             return;
         }
 
@@ -390,11 +411,20 @@
         btn.disabled = true;
         btn.innerText = '寄送中...';
 
-        const [year, month] = monthVal.split('-');
         const subject = `【工作日誌】${year}年${month}月 - ${employee} (${company})`;
 
-        // 為了確保 Email 顯示正常，我們抓取表格的 HTML 並加上簡單的樣式
-        const tableHtml = document.querySelector('table').outerHTML;
+        // 【關鍵處理】：複製一份表格，把裡面的「操作按鈕」跟「可編輯屬性」清掉，確保寄出去的信件是乾淨的
+        const tableClone = document.getElementById('logTable').cloneNode(true);
+        
+        // 刪除操作欄位(包含表頭跟按鈕)
+        const noPrintEls = tableClone.querySelectorAll('.no-print');
+        noPrintEls.forEach(el => el.remove());
+        
+        // 移除 contenteditable 屬性，避免老闆以為信件可以亂打字
+        const editableEls = tableClone.querySelectorAll('[contenteditable]');
+        editableEls.forEach(el => el.removeAttribute('contenteditable'));
+
+        const tableHtml = tableClone.outerHTML;
         const htmlBody = `
             <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
                 <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">${year}年${month}月 工作日誌</h2>
@@ -406,15 +436,12 @@
             </div>
         `;
 
-        // 您的專屬 Google Apps Script URL
         const scriptUrl = 'https://script.google.com/macros/s/AKfycbyxs5f_0HxroSOmDw9gToUNBt2MKk1wm0uEsvi1DcRCSonuf07UnwLjb7ZxUUmgB_Ti/exec';
 
         try {
             const response = await fetch(scriptUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'text/plain;charset=utf-8',
-                },
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({
                     token: token,        
                     subject: subject,
