@@ -170,6 +170,10 @@
             <label for="employeeName">受僱者名稱</label>
             <input type="text" id="employeeName" placeholder="例如：王小明">
         </div>
+        <div class="form-group">
+            <label for="apiToken">🔒 寄件通關密碼 (保護 API)</label>
+            <input type="password" id="apiToken" placeholder="0924">
+        </div>
     </div>
 
     <div class="form-group">
@@ -369,6 +373,12 @@
         const company = document.getElementById('companyName').value || '未填寫單位';
         const employee = document.getElementById('employeeName').value || '未填寫姓名';
         const monthVal = document.getElementById('workMonth').value;
+        const token = document.getElementById('apiToken').value;
+
+if (!token) {
+    alert("請輸入寄件通關密碼！");
+    return;
+}
         
         if (!monthVal) {
             alert("請先產出報表！");
@@ -406,6 +416,7 @@
                     'Content-Type': 'text/plain;charset=utf-8',
                 },
                 body: JSON.stringify({
+                    token: token,        // <--- 加上這行
                     subject: subject,
                     htmlBody: htmlBody
                 })
