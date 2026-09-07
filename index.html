@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>遠距工作日誌產生器 (進階編輯版)</title>
+    <title>遠距工作日誌產生器 (國稅局防禦進階版)</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -17,7 +17,7 @@
             color: #333;
             line-height: 1.6;
             padding: 20px;
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
         }
         .container {
@@ -40,6 +40,7 @@
             display: block;
             font-weight: bold;
             margin-bottom: 5px;
+            color: #444;
         }
         input[type="text"], input[type="password"], select {
             width: 100%;
@@ -63,6 +64,7 @@
             padding: 15px;
             border-radius: 6px;
             margin-bottom: 20px;
+            border-left: 4px solid var(--accent-color);
         }
         .task-list {
             display: flex;
@@ -120,7 +122,6 @@
             text-align: center;
             margin-bottom: 30px;
         }
-        /* 提示文字 */
         .edit-hint {
             background: #fff3cd;
             color: #856404;
@@ -129,6 +130,7 @@
             text-align: center;
             margin-bottom: 15px;
             font-weight: bold;
+            border: 1px solid #ffeeba;
         }
         table {
             width: 100%;
@@ -144,9 +146,15 @@
             background-color: var(--primary-color);
             color: white;
         }
-        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:nth-child(even) { background-color: #fcfcfc; }
         
-        /* 可編輯欄位的樣式 */
+        /* 標籤強調顏色 */
+        .loc-tag { font-weight: bold; padding: 2px 4px; border-radius: 3px; font-size: 0.9em; margin-right: 5px; }
+        .loc-remote { background-color: #e8f4f8; color: #0277bd; }
+        .loc-onsite { background-color: #fce4ec; color: #c2185b; }
+        .loc-meeting { background-color: #f3e5f5; color: #7b1fa2; }
+        .highlight-output { color: #d35400; font-size: 0.9em; margin-left: 5px; }
+
         .editable-cell[contenteditable="true"] {
             transition: all 0.2s;
         }
@@ -169,27 +177,30 @@
         .btn-copy { background-color: #f39c12; margin-top: 20px; }
         .btn-copy:hover { background-color: #d68910; }
 
-        /* 列印模式設定 (隱藏按鈕) */
         @media print {
             body { background: white; padding: 0; }
             .container, .btn-copy, .btn-email, .no-print, .edit-hint { display: none !important; }
             #reportArea { display: block; box-shadow: none; padding: 0; }
             .editable-cell[contenteditable="true"] { outline: none !important; background-color: transparent !important; }
+            /* 列印時強制顯示顏色標籤 */
+            .loc-remote { border: 1px solid #0277bd; }
+            .loc-onsite { border: 1px solid #c2185b; }
+            .loc-meeting { border: 1px solid #7b1fa2; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>📝 遠距工作日誌產生器</h1>
+    <h1>📝 遠距工作日誌產生器 (防查核進階版)</h1>
     
     <div class="grid-2">
         <div class="form-group">
-            <label for="companyName">工作單位名稱</label>
+            <label for="companyName">🏢 工作單位名稱</label>
             <input type="text" id="companyName" placeholder="例如：某某科技有限公司" value="某某科技有限公司">
         </div>
         <div class="form-group">
-            <label for="employeeName">受僱者名稱</label>
+            <label for="employeeName">👤 受僱者名稱</label>
             <input type="text" id="employeeName" placeholder="例如：王小明">
         </div>
         <div class="form-group">
@@ -197,39 +208,31 @@
             <input type="password" id="apiToken" placeholder="輸入通關密碼 (例如: 0924)">
         </div>
         <div class="form-group">
-            <label>請選擇產出年份與月份</label>
+            <label>📅 請選擇產出年份與月份</label>
             <div class="date-selectors">
-                <select id="workYear">
-                    <!-- JS自動生成年份 -->
-                </select>
+                <select id="workYear"></select>
                 <select id="workMonth">
-                    <option value="01">1月</option>
-                    <option value="02">2月</option>
-                    <option value="03">3月</option>
-                    <option value="04">4月</option>
-                    <option value="05">5月</option>
-                    <option value="06">6月</option>
-                    <option value="07">7月</option>
-                    <option value="08">8月</option>
-                    <option value="09">9月</option>
-                    <option value="10">10月</option>
-                    <option value="11">11月</option>
-                    <option value="12">12月</option>
+                    <option value="01">1月</option><option value="02">2月</option>
+                    <option value="03">3月</option><option value="04">4月</option>
+                    <option value="05">5月</option><option value="06">6月</option>
+                    <option value="07">7月</option><option value="08">8月</option>
+                    <option value="09">9月</option><option value="10">10月</option>
+                    <option value="11">11月</option><option value="12">12月</option>
                 </select>
             </div>
         </div>
     </div>
 
     <div class="task-manager">
-        <label>工作項目設定 (產出時將隨機分配至每日工時)</label>
+        <label>🛠️ 核心工作項目設定 (產出時將自動展開為「具體勞務行為」以備查核)</label>
         <div class="task-list" id="taskList"></div>
         <div class="add-task-row">
-            <input type="text" id="newTaskInput" placeholder="輸入新的工作項目...">
+            <input type="text" id="newTaskInput" placeholder="輸入新的工作項目 (例如: 競品分析)...">
             <button type="button" onclick="addTask()">新增項目</button>
         </div>
     </div>
 
-    <button class="btn-generate" onclick="generateReport()">🚀 一鍵生成可編輯工作日誌</button>
+    <button class="btn-generate" onclick="generateReport()">🚀 一鍵生成高可信度工作日誌</button>
 </div>
 
 <div id="reportArea">
@@ -239,48 +242,85 @@
         <p><strong>申報區間：</strong> <span id="outPeriod"></span> &nbsp;&nbsp;|&nbsp;&nbsp; <strong>表定工時：</strong> 週一至週五 08:00~17:00</p>
     </div>
 
-    <div class="edit-hint">💡 提示：滑鼠點擊下方表格的「內容文字」即可直接修改！遇到連假或請假，請點選右側「刪除」按鈕整列抽掉。</div>
+    <div class="edit-hint">💡 提示：本報表已自動混入【遠距/現場】標籤與具體勞務產出。點擊文字可手動微調，遇假日請按右側刪除。</div>
 
     <table id="logTable">
         <thead>
             <tr>
                 <th width="10%">日期</th>
                 <th width="8%">星期</th>
-                <th width="18%">時間</th>
-                <th>工作內容摘要</th>
+                <th width="18%">時間紀錄</th>
+                <th>具體工作內容摘要與產出</th>
                 <th width="8%" class="no-print">操作</th>
             </tr>
         </thead>
         <tbody id="reportTableBody">
-            <!-- 報表內容會透過 JS 產出 -->
+            <!-- 報表內容 -->
         </tbody>
     </table>
     
-    <button class="btn-copy" onclick="window.print()">🖨️ 列印 / 存成 PDF</button>
+    <button class="btn-copy" onclick="window.print()">🖨️ 列印 / 存成 PDF 備查</button>
     <button class="btn-email" id="btnSendEmail" onclick="sendEmail()" style="background-color: #e74c3c; margin-left: 10px; margin-top: 20px;">✉️ 寄送給老闆</button>
 </div>
 
 <script>
-    // 預設工作項目
-    let tasks = [
-        "教具製作", "網路輿情蒐集", "公關事件處理", "帳務分析", "老闆交辦事項"
+    // 預設核心工作項目
+    let tasks = ["教具製作", "網路輿情蒐集", "公關事件處理", "帳務分析", "老闆交辦事項"];
+
+    // 建立深度任務動詞庫 (製造真實勞務感，應付查核用)
+    const taskDictionary = {
+        "教具製作": [
+            "撰寫教案初稿結構", "設計與排版互動式教學簡報", "蒐集課程所需之多媒體影音素材", 
+            "剪輯線上教學影片(含上字幕)", "校對教材錯字與更新內容排版", "製作學員課後測驗卷與解答", 
+            "線上測試電子教具操作流暢度", "整理實體教具數位化歸檔清單"
+        ],
+        "網路輿情蒐集": [
+            "監測社群(FB/IG)討論熱度並截圖紀錄", "彙整本週競品行銷活動分析", "追蹤PTT/Dcard相關關鍵字並建檔", 
+            "分析客訴留言並初步擬定回應草稿", "產出單日網路輿情觀測速報", "更新KOL與網紅合作名單資料庫"
+        ],
+        "公關事件處理": [
+            "草擬對外公關新聞稿/聲明稿", "更新媒體公關與記者聯絡人清單", "協助回覆客戶與合作單位之反映信件", 
+            "蒐集同業公關危機處理案例作為內部參考", "與外部行銷團隊進行線上進度對焦", "追蹤公關發稿後續曝光效益與流量"
+        ],
+        "帳務分析": [
+            "核對當月零用金與雲端發票明細", "整理廠商請款單據並數位建檔", "製作下階段行銷專案預算初稿", 
+            "分析上季專案成本與投資報酬率效益", "彙總各部門差旅與雜項費用報表", "登錄電子收據並與財務系統核對"
+        ],
+        "老闆交辦事項": [
+            "整理內部跨部門線上會議紀錄", "協尋特定供應商報價與聯絡資訊", "更新與維護內部專案進度追蹤表(Excel)", 
+            "協助安排下週高階主管會議議程", "處理急件文件排版、轉檔與發送", "盤點文具與線上軟體訂閱授權期限"
+        ]
+    };
+
+    // 若使用者新增不在字典內的任務，則套用這些萬用商務動詞
+    const genericActions = [
+        "蒐集與盤點 [TASK] 相關前置資料", "進行 [TASK] 初步規劃與草稿撰寫", 
+        "執行 [TASK] 作業並產出階段性進度", "與團隊線上討論 [TASK] 後續優化方向", 
+        "彙整 [TASK] 相關數據並製作報表", "覆核 [TASK] 最終產出品質與準備歸檔"
     ];
 
+    // 辦公型態機率池 (約 70%遠距, 15%現場, 15%線上會議)
+    const locationPool = [
+        { label: "【遠距辦公】", css: "loc-remote" }, { label: "【遠距辦公】", css: "loc-remote" },
+        { label: "【遠距辦公】", css: "loc-remote" }, { label: "【遠距辦公】", css: "loc-remote" },
+        { label: "【遠距辦公】", css: "loc-remote" }, { label: "【現場支援】", css: "loc-onsite" },
+        { label: "【線上會議】", css: "loc-meeting" }
+    ];
+
+    // 產出量化後綴詞 (增加勞務真實感)
+    const outputSuffixes = ["(完成進度約 80%)", "(產出1份檔案)", "(已彙整建檔)", "(產出初稿待審)", "(提供相關報表)", "(會議記錄已發出)"];
+
     window.onload = () => {
-        // 動態生成年份選項 (2024 ~ 2035)
         const yearSelect = document.getElementById('workYear');
-        for(let y = 2024; y <= 2035; y++) {
+        for(let y = 2023; y <= 2035; y++) {
             let option = document.createElement('option');
             option.value = y;
             option.text = y + '年';
             yearSelect.appendChild(option);
         }
-
-        // 預設選擇現在的年月
         const today = new Date();
         yearSelect.value = today.getFullYear();
         document.getElementById('workMonth').value = String(today.getMonth() + 1).padStart(2, '0');
-        
         renderTasks();
     };
 
@@ -310,6 +350,30 @@
         renderTasks();
     }
 
+    // 取得具體的行為描述
+    function getSpecificAction(taskName) {
+        let actionList = taskDictionary[taskName];
+        if (!actionList) {
+            // 套用萬用詞
+            let generic = genericActions[Math.floor(Math.random() * genericActions.length)];
+            return generic.replace("[TASK]", taskName);
+        }
+        return actionList[Math.floor(Math.random() * actionList.length)];
+    }
+
+    // 隨機取得辦公地點
+    function getRandomLocation() {
+        return locationPool[Math.floor(Math.random() * locationPool.length)];
+    }
+
+    // 隨機取得產出後綴 (約30%機率出現)
+    function getRandomSuffix() {
+        if (Math.random() < 0.3) {
+            return ` <span class="highlight-output">${outputSuffixes[Math.floor(Math.random() * outputSuffixes.length)]}</span>`;
+        }
+        return "";
+    }
+
     function shuffleArray(array) {
         let arr = [...array];
         for (let i = arr.length - 1; i > 0; i--) {
@@ -319,7 +383,6 @@
         return arr;
     }
 
-    // 產出報表函數
     function generateReport() {
         const company = document.getElementById('companyName').value || '未填寫單位';
         const employee = document.getElementById('employeeName').value || '未填寫姓名';
@@ -349,41 +412,46 @@
             // 週一到週五
             if (dayOfWeek !== 0 && dayOfWeek !== 6) {
                 let shuffledTasks = shuffleArray(tasks);
-                let amTaskCount = Math.floor(Math.random() * 2) + 1;
-                let pmTaskCount = Math.floor(Math.random() * 2) + 1;
                 
-                if (amTaskCount + pmTaskCount > shuffledTasks.length) {
-                    amTaskCount = Math.ceil(shuffledTasks.length / 2);
-                    pmTaskCount = Math.floor(shuffledTasks.length / 2);
-                }
+                // 決定上下午各負責什麼主軸
+                let amBaseTask = shuffledTasks[0];
+                let pmBaseTask = shuffledTasks.length > 1 ? shuffledTasks[1] : shuffledTasks[0];
+                let otherTask = shuffledTasks.length > 2 ? shuffledTasks[2] : null;
 
-                let amTasks = shuffledTasks.slice(0, amTaskCount);
-                let pmTasks = shuffledTasks.slice(amTaskCount, amTaskCount + pmTaskCount);
-                if(pmTasks.length === 0) pmTasks = [tasks[Math.floor(Math.random() * tasks.length)]];
-
-                let amText = `進行 ${amTasks.join('、')} 相關業務`;
-                let pmText = `處理 ${pmTasks.join('、')} 等事項`;
+                // 產生具體行為句子
+                let amAction1 = getSpecificAction(amBaseTask);
+                let amAction2 = otherTask && Math.random() > 0.5 ? getSpecificAction(otherTask) : "";
                 
-                const verbs = ["協助", "執行", "跟進", "彙整"];
-                if (Math.random() > 0.5) amText = verbs[Math.floor(Math.random()*verbs.length)] + amTasks.join('與') + "作業";
-                if (Math.random() > 0.5) pmText = "完成" + pmTasks.join('及') + "相關任務";
+                let pmAction1 = getSpecificAction(pmBaseTask);
+                let pmAction2 = Math.random() > 0.6 ? getSpecificAction(amBaseTask) : ""; // 下午可能繼續早上的事
+
+                let locAm = getRandomLocation();
+                let locPm = getRandomLocation();
+                
+                // 為了邏輯合理，如果早上現場，下午有40%機率也是現場
+                if (locAm.label === "【現場支援】" && Math.random() > 0.6) locPm = locAm;
+
+                let amHtml = `<span class="loc-tag ${locAm.css}">${locAm.label}</span> ${amAction1}${getRandomSuffix()}`;
+                if(amAction2) amHtml += `<br><span class="loc-tag ${locAm.css}">${locAm.label}</span> ${amAction2}${getRandomSuffix()}`;
+                
+                let pmHtml = `<span class="loc-tag ${locPm.css}">${locPm.label}</span> ${pmAction1}${getRandomSuffix()}`;
+                if(pmAction2 && pmAction1 !== pmAction2) pmHtml += `<br><span class="loc-tag ${locPm.css}">${locPm.label}</span> ${pmAction2}`;
 
                 let tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="text-align: center;">${month}/${String(day).padStart(2, '0')}</td>
                     <td style="text-align: center;">週${weekDayNames[dayOfWeek]}</td>
-                    <td contenteditable="true" class="editable-cell">
-                        08:00~12:00<br>
-                        <span style="color:#888; font-size:12px;">12:00~13:00</span><br>
-                        13:00~17:00
+                    <td contenteditable="true" class="editable-cell" style="font-family: monospace; font-size: 0.95em;">
+                        08:00~12:00 (4h)<br>
+                        <span style="color:#aaa; font-size:12px;">12:00~13:00 休息</span><br>
+                        13:00~17:00 (4h)
                     </td>
-                    <td contenteditable="true" class="editable-cell">
-                        • 上午：${amText}<br>
-                        <span style="color:#888; font-size:12px;">• 午間：休息</span><br>
-                        • 下午：${pmText}
+                    <td contenteditable="true" class="editable-cell" style="line-height: 1.8;">
+                        <strong>[上午]</strong><br>${amHtml}<br>
+                        <strong>[下午]</strong><br>${pmHtml}
                     </td>
                     <td class="no-print" style="text-align: center;">
-                        <button class="btn-delete-row" onclick="this.closest('tr').remove()" title="若是國定假日請點此刪除">🗑️刪除</button>
+                        <button class="btn-delete-row" onclick="this.closest('tr').remove()" title="若是國定假日/請假請點此刪除">🗑️刪除</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -394,7 +462,7 @@
         document.getElementById('reportArea').scrollIntoView({ behavior: 'smooth' });
     }
     
-    // ======= 寄信功能 =======
+    // ======= 寄信功能保留原始邏輯，但增加防止跑版設定 =======
     async function sendEmail() {
         const company = document.getElementById('companyName').value || '未填寫單位';
         const employee = document.getElementById('employeeName').value || '未填寫姓名';
@@ -413,20 +481,15 @@
 
         const subject = `【工作日誌】${year}年${month}月 - ${employee} (${company})`;
 
-        // 【關鍵處理】：複製一份表格，把裡面的「操作按鈕」跟「可編輯屬性」清掉，確保寄出去的信件是乾淨的
         const tableClone = document.getElementById('logTable').cloneNode(true);
-        
-        // 刪除操作欄位(包含表頭跟按鈕)
         const noPrintEls = tableClone.querySelectorAll('.no-print');
         noPrintEls.forEach(el => el.remove());
-        
-        // 移除 contenteditable 屬性，避免老闆以為信件可以亂打字
         const editableEls = tableClone.querySelectorAll('[contenteditable]');
         editableEls.forEach(el => el.removeAttribute('contenteditable'));
 
         const tableHtml = tableClone.outerHTML;
         const htmlBody = `
-            <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+            <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; width: 100%; max-width: 800px;">
                 <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">${year}年${month}月 工作日誌</h2>
                 <p><strong>工作單位：</strong> ${company}</p>
                 <p><strong>受僱者：</strong> ${employee}</p>
@@ -442,11 +505,7 @@
             const response = await fetch(scriptUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({
-                    token: token,        
-                    subject: subject,
-                    htmlBody: htmlBody
-                })
+                body: JSON.stringify({ token: token, subject: subject, htmlBody: htmlBody })
             });
 
             const result = await response.json();
