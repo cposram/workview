@@ -110,7 +110,6 @@
         }
         .btn-generate:hover { background-color: #219653; }
         
-        /* 報表輸出區 */
         #reportArea {
             display: none;
             background: #fff;
@@ -148,12 +147,11 @@
         }
         tr:nth-child(even) { background-color: #fcfcfc; }
         
-        /* 標籤強調顏色 */
         .loc-tag { font-weight: bold; padding: 2px 4px; border-radius: 3px; font-size: 0.9em; margin-right: 5px; }
         .loc-remote { background-color: #e8f4f8; color: #0277bd; }
         .loc-onsite { background-color: #fce4ec; color: #c2185b; }
         .loc-meeting { background-color: #f3e5f5; color: #7b1fa2; }
-        .highlight-output { color: #d35400; font-size: 0.9em; margin-left: 5px; }
+        .highlight-output { color: #7f8c8d; font-size: 0.9em; margin-left: 5px; font-style: italic; }
 
         .editable-cell[contenteditable="true"] {
             transition: all 0.2s;
@@ -182,7 +180,6 @@
             .container, .btn-copy, .btn-email, .no-print, .edit-hint { display: none !important; }
             #reportArea { display: block; box-shadow: none; padding: 0; }
             .editable-cell[contenteditable="true"] { outline: none !important; background-color: transparent !important; }
-            /* 列印時強制顯示顏色標籤 */
             .loc-remote { border: 1px solid #0277bd; }
             .loc-onsite { border: 1px solid #c2185b; }
             .loc-meeting { border: 1px solid #7b1fa2; }
@@ -205,7 +202,7 @@
         </div>
         <div class="form-group">
             <label for="apiToken">🔒 寄件通關密碼</label>
-            <input type="password" id="apiToken" placeholder="輸入通關密碼 4碼生日)">
+            <input type="password" id="apiToken" placeholder="輸入通關密碼 (4碼生日)">
         </div>
         <div class="form-group">
             <label>📅 請選擇產出年份與月份</label>
@@ -224,7 +221,7 @@
     </div>
 
     <div class="task-manager">
-        <label>🛠️ 核心工作項目設定 (產出時將自動展開為「具體勞務行為」以備查核)</label>
+        <label>🛠️ 核心工作項目設定 (自動展開為安全、難以追查檔案的過程導向動詞)</label>
         <div class="task-list" id="taskList"></div>
         <div class="add-task-row">
             <input type="text" id="newTaskInput" placeholder="輸入新的工作項目 (例如: 競品分析)...">
@@ -242,7 +239,7 @@
         <p><strong>申報區間：</strong> <span id="outPeriod"></span> &nbsp;&nbsp;|&nbsp;&nbsp; <strong>表定工時：</strong> 週一至週五 08:00~17:00</p>
     </div>
 
-    <div class="edit-hint">💡 提示：本報表已自動混入【遠距/現場】標籤與具體勞務產出。點擊文字可手動微調，遇假日請按右側刪除。</div>
+    <div class="edit-hint">💡 提示：本報表已將工作內容改為「過程導向」，避免產生需舉證的實體檔案。點擊文字可手動微調，遇假日請按右側刪除。</div>
 
     <table id="logTable">
         <thead>
@@ -250,7 +247,7 @@
                 <th width="10%">日期</th>
                 <th width="8%">星期</th>
                 <th width="18%">時間紀錄</th>
-                <th>具體工作內容摘要與產出</th>
+                <th>具體工作內容摘要 (無痕化)</th>
                 <th width="8%" class="no-print">操作</th>
             </tr>
         </thead>
@@ -267,36 +264,36 @@
     // 預設核心工作項目
     let tasks = ["教具製作", "網路輿情蒐集", "公關事件處理", "帳務分析", "老闆交辦事項"];
 
-    // 建立深度任務動詞庫 (製造真實勞務感，應付查核用)
+    // 建立深度任務動詞庫 (全面改為「過程導向」，沒有單一具體檔案可被調閱)
     const taskDictionary = {
         "教具製作": [
-            "撰寫教案初稿結構", "設計與排版互動式教學簡報", "蒐集課程所需之多媒體影音素材", 
-            "剪輯教學影片(含上字幕)", "校對教材錯字與更新內容排版", "製作學員課後測驗卷與解答", 
-            "線上測試電子教具操作流暢度", "整理實體教具數位化歸檔清單"
+            "評估教案結構優化方向", "檢視互動式教學簡報排版", "蒐集與盤點課程所需影音素材", 
+            "協助線上教學影片後製前置作業", "進行教材內容與錯字初步校閱", "檢視學員測驗卷邏輯正確性", 
+            "測試線上電子教具功能流暢度", "盤點實體教具使用狀況與維護需求"
         ],
         "網路輿情蒐集": [
-            "監測社群討論熱度", "彙報本週競業行銷活動分析", "追蹤PTT/Dcard相關關鍵字", 
-            "分析客訴留言並初步擬定回應草稿", "產出網路輿情觀測速報", "更新資料庫"
+            "觀測社群討論熱度與風向", "盤點本週競業行銷活動資訊", "追蹤相關論壇(PTT/Dcard)關鍵字動態", 
+            "評估客訴留言後續處理方針", "整理網路輿情初步資訊", "例行性更新與維護內部參考資料庫"
         ],
         "公關事件處理": [
-            "草擬對外聲明", "更新聯絡人清單", "協助回覆家長與合作單位之反映", 
-            "蒐集同業公關危機處理案例作為內部參考", "與外部行銷團隊進行線上進度對焦", "追蹤公關發稿後續曝光效益與流量"
+            "研擬對外溝通與回覆策略", "盤點媒體聯絡人清單狀態", "協助追蹤家長與合作單位之反映事項", 
+            "蒐集同業公關案例資訊供內部參考", "參與外部行銷團隊線上討論與意見交換", "追蹤公關發布後之網路反應與迴響"
         ],
         "帳務分析": [
-            "核對當月零用金與發票明細", "整理廠商請款單據並數位建檔", "製作下階段行銷專案預算初稿", 
-            "分析上季專案成本與投資效益", "彙總雜項費用報表", "登錄電子收據並與財務系統核對"
+            "協助初步核對當月各項費用明細", "整理廠商請款相關資訊與確認進度", "評估行銷專案預算分配項目", 
+            "檢視上季專案成本與資源消耗概況", "協助盤點內部雜項費用流向", "協助登錄或校對電子收據正確性"
         ],
         "老闆交辦事項": [
-            "整理內部會議紀錄", "協尋特定供應商報價與聯絡資訊", "更新與維護內部專案進度追蹤", 
-            "協助安排主管會議議程", "處理急件文件排版、轉檔與發送", "盤點文具與軟體訂閱授權期限"
+            "協助整理內部會議討論重點", "協尋特定供應商聯絡資訊與服務範圍", "檢視與追蹤內部專案目前進度", 
+            "協助安排與聯繫主管會議時間", "處理急件文件格式調整與溝通轉發", "盤點日常所需軟硬體資源狀態"
         ]
     };
 
-    // 若使用者新增不在字典內的任務，則套用這些萬用商務動詞
+    // 若使用者新增不在字典內的任務，套用無痕商務動詞
     const genericActions = [
-        "蒐集與盤點 [TASK] 相關前置資料", "進行 [TASK] 初步規劃與草稿撰寫", 
-        "執行 [TASK] 作業並產出階段性進度", "與團隊線上討論 [TASK] 後續優化方向", 
-        "彙整 [TASK] 相關數據並製作報表", "覆核 [TASK] 最終產出品質與準備歸檔"
+        "蒐集與盤點 [TASK] 相關資訊", "進行 [TASK] 初步評估與資料準備", 
+        "協助執行 [TASK] 相關日常作業", "與團隊進行 [TASK] 線上意見交換", 
+        "處理 [TASK] 相關之一般性事務", "覆核與追蹤 [TASK] 目前執行進度"
     ];
 
     // 辦公型態機率池 (約 70%遠距, 15%現場, 15%線上會議)
@@ -307,8 +304,8 @@
         { label: "【線上會議】", css: "loc-meeting" }
     ];
 
-    // 產出量化後綴詞 (增加勞務真實感)
-    const outputSuffixes = ["(完成進度約 80%)", "(產出1份檔案)", "(已彙整建檔)", "(產出初稿待審)", "(提供相關報表)", "(會議記錄已發出)"];
+    // 產出量化後綴詞改為「狀態追蹤詞」，不留實質檔案把柄
+    const outputSuffixes = ["(持續跟進中)", "(階段性盤點)", "(資料審閱與確認)", "(跨部門協作)", "(處理日常維護)", "(線上對焦)"];
 
     window.onload = () => {
         const yearSelect = document.getElementById('workYear');
@@ -350,25 +347,22 @@
         renderTasks();
     }
 
-    // 取得具體的行為描述
     function getSpecificAction(taskName) {
         let actionList = taskDictionary[taskName];
         if (!actionList) {
-            // 套用萬用詞
             let generic = genericActions[Math.floor(Math.random() * genericActions.length)];
             return generic.replace("[TASK]", taskName);
         }
         return actionList[Math.floor(Math.random() * actionList.length)];
     }
 
-    // 隨機取得辦公地點
     function getRandomLocation() {
         return locationPool[Math.floor(Math.random() * locationPool.length)];
     }
 
-    // 隨機取得產出後綴 (約30%機率出現)
+    // 隨機取得狀態後綴 (降低出現機率至25%，作為點綴)
     function getRandomSuffix() {
-        if (Math.random() < 0.3) {
+        if (Math.random() < 0.25) {
             return ` <span class="highlight-output">${outputSuffixes[Math.floor(Math.random() * outputSuffixes.length)]}</span>`;
         }
         return "";
@@ -409,26 +403,22 @@
             let currentDate = new Date(year, month - 1, day);
             let dayOfWeek = currentDate.getDay();
 
-            // 週一到週五
             if (dayOfWeek !== 0 && dayOfWeek !== 6) {
                 let shuffledTasks = shuffleArray(tasks);
                 
-                // 決定上下午各負責什麼主軸
                 let amBaseTask = shuffledTasks[0];
                 let pmBaseTask = shuffledTasks.length > 1 ? shuffledTasks[1] : shuffledTasks[0];
                 let otherTask = shuffledTasks.length > 2 ? shuffledTasks[2] : null;
 
-                // 產生具體行為句子
                 let amAction1 = getSpecificAction(amBaseTask);
                 let amAction2 = otherTask && Math.random() > 0.5 ? getSpecificAction(otherTask) : "";
                 
                 let pmAction1 = getSpecificAction(pmBaseTask);
-                let pmAction2 = Math.random() > 0.6 ? getSpecificAction(amBaseTask) : ""; // 下午可能繼續早上的事
+                let pmAction2 = Math.random() > 0.6 ? getSpecificAction(amBaseTask) : ""; 
 
                 let locAm = getRandomLocation();
                 let locPm = getRandomLocation();
                 
-                // 為了邏輯合理，如果早上現場，下午有40%機率也是現場
                 if (locAm.label === "【現場支援】" && Math.random() > 0.6) locPm = locAm;
 
                 let amHtml = `<span class="loc-tag ${locAm.css}">${locAm.label}</span> ${amAction1}${getRandomSuffix()}`;
@@ -462,7 +452,6 @@
         document.getElementById('reportArea').scrollIntoView({ behavior: 'smooth' });
     }
     
-    // ======= 寄信功能保留原始邏輯，但增加防止跑版設定 =======
     async function sendEmail() {
         const company = document.getElementById('companyName').value || '未填寫單位';
         const employee = document.getElementById('employeeName').value || '未填寫姓名';
